@@ -1,56 +1,99 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
-<head>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<title></title>
-</head>
- 
-<body>
-</body>
- 
-<script>
-	!function () {
-    function n(n, e, t) {
-        return n.getAttribute(e) || t
+//鼠标移动特效
+(function () {
+    var colors = ["#D61C59", "#E7D84B", "#1B8798"];
+    characters = ["♬", "♪"];
+    elementGroup = [];
+    //定义元素类
+    class Element {
+        //构造函数
+        constructor() {
+            num = Math.floor(Math.random() * characters.length);
+            this.character = characters[num];
+            this.lifeSpan = 120;
+            this.initialStyles = {
+                position: "fixed",
+                top: "0",
+                display: "block",
+                pointerEvents: "none",
+                "z-index": "10000000",
+                fontSize: "25px",
+                "will-change": "transform",
+                color: "#000000"
+            };
+            //初始化
+            this.init = function (x, y, color) {
+                this.velocity = { x: (Math.random() < .5 ? -1 : 1) * (Math.random() / 2), y: 1 };
+                this.position = { x: x - 10, y: y - 20 };
+                this.initialStyles.color = color;
+                this.element = document.createElement("span");
+                this.element.innerHTML = this.character;
+                ApplyStyle(this.element, this.initialStyles);
+                this.update();
+                document.body.appendChild(this.element);
+            };
+            //更新
+            this.update = function () {
+                //移动，缩放
+                this.position.x += this.velocity.x;
+                this.position.y += this.velocity.y;
+                this.lifeSpan--;
+                this.element.style.transform = "translate3d(" + this.position.x + "px," + this.position.y + "px,0) scale(" + this.lifeSpan / 120 + ")";
+            };
+            //销毁
+            this.die = function () {
+                this.element.parentNode.removeChild(this.element);
+            };
+        }
     }
- 
-    function e(n) {
-        return document.getElementsByTagName(n)
+
+    AddListener();
+    //循环
+    setInterval(
+        function () {
+            Rander();
+        },
+        1000 / 60);
+    //添加事件监听器
+    function AddListener() {
+        //当前事件对象会作为第一个参数传入函数
+        document.addEventListener("mousemove", onMouseMove);
+        document.addEventListener("touchmove", Touch);
+        document.addEventListener("touchstart", Touch);
     }
- 
-    function t() {
-        var t = e("script"), o = t.length, i = t[o - 1];
-        return {l: o, z: n(i, "zIndex", -1), o: n(i, "opacity", .5), c: n(i, "color", "0,0,0"), n: n(i, "count", 99)}
+    //逐个渲染
+    function Rander() {
+        for (var i = 0; i < elementGroup.length; i++) {
+            elementGroup[i].update();
+            if (elementGroup[i].lifeSpan < 0) {
+                elementGroup[i].die();
+                elementGroup.splice(i, 1);
+            }
+        }
     }
- 
-    function o() {
-        a = m.width = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth, c = m.height = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight
+    //鼠标移动事件函数
+    function onMouseMove(t) {
+        num = Math.floor(Math.random() * colors.length);
+        CreateElement(t.clientX, t.clientY, colors[num]);
     }
- 
-    function i() {
-        r.clearRect(0, 0, a, c);
-        var n, e, t, o, m, l;
-        s.forEach(function (i, x) {
-            for (i.x += i.xa, i.y += i.ya, i.xa *= i.x > a || i.x < 0 ? -1 : 1, i.ya *= i.y > c || i.y < 0 ? -1 : 1, r.fillRect(i.x - .5, i.y - .5, 1, 1), e = x + 1; e < u.length; e++) n = u[e], null !== n.x && null !== n.y && (o = i.x - n.x, m = i.y - n.y, l = o * o + m * m, l < n.max && (n === y && l >= n.max / 2 && (i.x -= .03 * o, i.y -= .03 * m), t = (n.max - l) / n.max, r.beginPath(), r.lineWidth = t / 2, r.strokeStyle = "rgba(" + d.c + "," + (t + .2) + ")", r.moveTo(i.x, i.y), r.lineTo(n.x, n.y), r.stroke()))
-        }), x(i)
+    //添加元素
+    function CreateElement(x, y, color) {
+        var e = new Element;
+        e.init(x, y, color);
+        elementGroup.push(e);
     }
- 
-    var a, c, u, m = document.createElement("canvas"), d = t(), l = "c_n" + d.l, r = m.getContext("2d"),
-        x = window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.oRequestAnimationFrame || window.msRequestAnimationFrame || function (n) {
-            window.setTimeout(n, 1e3 / 45)
-        }, w = Math.random, y = {x: null, y: null, max: 2e4};
-    m.id = l, m.style.cssText = "position:fixed;top:0;left:0;z-index:" + d.z + ";opacity:" + d.o, e("body")[0].appendChild(m), o(), window.onresize = o, window.onmousemove = function (n) {
-        n = n || window.event, y.x = n.clientX, y.y = n.clientY
-    }, window.onmouseout = function () {
-        y.x = null, y.y = null
-    };
-    for (var s = [], f = 0; d.n > f; f++) {
-        var h = w() * a, g = w() * c, v = 2 * w() - 1, p = 2 * w() - 1;
-        s.push({x: h, y: g, xa: v, ya: p, max: 6e3})
+    //调整元素属性
+    function ApplyStyle(element, style) {
+        for (var i in style) {
+            element.style[i] = style[i];
+        }
     }
-    u = s.concat([y]), setTimeout(function () {
-        i()
-    }, 100)
-}();
-</script>
-</html>
+    //触摸事件函数
+    function Touch(t) {
+        if (t.touches.length > 0) {
+            for (var i = 0; i < t.touches.length; i++) {
+                num = Math.floor(Math.random() * r.length);
+                s(t.touches[i].clientX, t.touches[i].clientY, r[num]);
+            }
+        }
+    }
+})();
